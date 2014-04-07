@@ -1,10 +1,7 @@
 .data
-w:	.word 0
-
 h1: .asciiz "s number of ones: "
 
 .text
-		la $t0, w
 		li $v0, 5
 		syscall
 		move $a0, $v0
