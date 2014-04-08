@@ -1,6 +1,6 @@
 .data
-arr	:	.word 0 : 3
-size:	.word 3
+arr	:	.word 0 : 64
+size:	.word 10
 
 .text
 		la $t1, size
@@ -23,27 +23,25 @@ size:	.word 3
 
 
 sol: move $t7, $ra 
-    move $t0, $a1
+    subi $t0, $a1, 1
     add $t0, $t0, $a0
 loop: 
-    beq $t0, $t1, end
+    blt $t0, $a0, end
+  
     lbu $t1, 0($t0)
     jal conv
     sb $t1, 0($t0)
-    lbu $t1, 1($t0)
-    jal conv
-    sb $t1, 1($t0)
-    lbu $t1, 2($t0)
-    jal conv
-    sb $t1, 2($t0)
-    lbu $t1, 3($t0)
-    jal conv
-    sb $t1, 3($t0)
-    subi $t1, $t1, 4
+
+    subi $t0, $t0, 1
     j loop
 end: jr $t7
 
-conv: li $t2, 32
+conv: li $t2, 32 # space
+    beq $t1, $t2, retC
+    beq $t1, $zero, retC # null
+    li $t2, 10 # nl
+    beq $t1, $t2, retC
+    li $t2, 13 # cr
     beq $t1, $t2, retC
     li $t2, 90
     bgt $t1, $t2, upp
