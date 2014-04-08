@@ -1,5 +1,6 @@
 .data
-h1: .asciiz " a*2^b: "
+h1: .asciiz " a*b: "
+h2: .asciiz " Error: mantissa overflow\n"
 
 .text
 		li $v0, 5
@@ -31,25 +32,47 @@ sol: li $t0,  0xEF800000
     and $t2, $a1, $t0
     srl $t2, $t2, 23
     add $t1, $t1, $t2
-    li $t2, 0xFF
-loopS: blt $t1, $t2, endS 
-    srl $t1, $t1, 1
-    j loopS
-endS: sll $t7, $t1, 23
-# t7 now has exponent ( = exp_1 + exp_2)
+    subi $t7, $t1, 127 # bias
+# t7 now has exponent ( = exp_1 + exp_2 - bias)
 
     li $t0,  0x007FFFFF
     and $t1, $a0, $t0
+    addi $t1, $t1, 0x00800000
     and $t2, $a1, $t0
-    mult $t3, $t1, $t2
-    srl $t3, $t3, 2
-    add $t3, $t3, $t2
-    add $t3, $t3, $t1
-    addi $t3, $t3, 0x00800000
-loopSD: blt $t3, $t0, endSD
-    srl $t3, $t3, 1
-    j loopSD
-endSD: move $t6, $t3
-# now t6 has mantissa ( = (1.0 + mant_1) * (1.0 + mant_2) = 1.0 + mant_1 + mant_2 + mant_1 * mant_2 )
+    addi $t2, $t2, 0x00800000
 
+    mult $t1, $t2
+    mflo $t3
+    srl $t3, $t3, 22
+    mfhi $t4
+    sll $t4, $t4, 9
+    or $t3, $t3, $t4
+    ori $t0, $t0, 0x00800000
+loopSD: ble $t3, $t0, endSD
+    srl $t3, $t3, 1
+    addi $t7, $t7, 1
+    j loopSD
+endSD: andi $t6, $t3, 0x007FFFFF
+# now t6 has mantissa ( = (0x00800000 + mant_1) * (0x0080000 + mant_2) >> 22 = 
+
+    li $t0, 0x80000000
+    and $t1, $a0, $t0
+    and $t2, $a1, $t0
+    xor $v0, $t1, $t2
+# v0 has sign
+
+    li $t0, 0xFF
+    blt $t0, $t7, mantissaOverflow
+    sll $t7, $t7, 23
+
+    or $v0, $v0, $t7
+    or $v0, $v0, $t6
     jr $ra
+
+mantissaOverflow:
+		la $a0, h2
+		li $v0, 4
+		syscall
+
+		li $v0, 10
+		syscall
